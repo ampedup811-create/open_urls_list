@@ -8,6 +8,7 @@ waits for Floorp to exit and propagates its exit code.
 
 from __future__ import annotations
 
+import os
 import subprocess
 import time
 from collections.abc import Iterator, Sequence
@@ -138,17 +139,25 @@ def launch_floorp_initial(
 def launch_floorp_additional_batch(
     urls: list[str], floorp_path: Path = FLOORP_PATH
 ) -> None:
-    """Launch Floorp to open ``urls`` as new tabs in the existing instance."""
+    """Launch Floorp to open ``urls`` as new tabs in the existing instance.
+    
+    Uses --new-tab to open URLs in the same window, and unsets DESKTOP_STARTUP_ID
+    to prevent the window manager from stealing focus when new tabs open.
+    """
 
     if not urls:
         return
 
     command = [str(floorp_path), "--new-tab", *urls]
     try:
+        # Unset DESKTOP_STARTUP_ID to prevent focus stealing
+        env = dict(os.environ)
+        env.pop("DESKTOP_STARTUP_ID", None)
         subprocess.Popen(
             command,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
+            env=env,
         )
     except (FileNotFoundError, OSError) as exc:  # pragma: no cover - subprocess failure
         raise RuntimeError("Floorp launch failed") from exc
