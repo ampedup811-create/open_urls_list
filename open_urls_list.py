@@ -165,6 +165,22 @@ def wait_for_browser_close(proc: subprocess.Popen[bytes]) -> int:
         raise RuntimeError("Failed while waiting for Floorp") from exc
 
 
+def backup_file(path: Path) -> None:
+    """Create a backup of ``path`` as ``{path.stem}_bak{path.suffix}``."""
+
+    if not path.exists():
+        raise ValueError("path must exist to create backup")
+    if path.is_dir():
+        raise ValueError("path must not be a directory")
+    
+    backup_path = path.parent / f"{path.stem}_bak{path.suffix}"
+    try:
+        content = path.read_text(encoding="utf-8")
+        backup_path.write_text(content, encoding="utf-8")
+    except OSError as exc:  # pragma: no cover - filesystem failure
+        raise RuntimeError("Failed to create backup file") from exc
+
+
 def clear_file(path: Path) -> None:
     """Truncate the file at ``path`` to zero bytes (creating it if needed)."""
 
@@ -221,6 +237,12 @@ def main() -> int:
         print("no URLs to open after filtering")
         return 0
 
+    try:
+        backup_file(url_file)
+    except (RuntimeError, ValueError) as exc:
+        print(str(exc))
+        return 1
+
     batches = list(chunked(urls_to_open, BATCH_SIZE))
     first_batch = batches[0]
 
@@ -239,13 +261,15 @@ def main() -> int:
                 print(str(exc))
                 return 1
 
+        exit_code = wait_for_browser_close(browser_proc)
+
         try:
             clear_file(url_file)
         except (RuntimeError, ValueError) as exc:
             print(str(exc))
             return 1
 
-        return wait_for_browser_close(browser_proc)
+        return exit_code
     except KeyboardInterrupt:
         print()
         return 130

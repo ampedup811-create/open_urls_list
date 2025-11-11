@@ -1,6 +1,6 @@
 # open_urls_list
 opens urls from list in floorp
-Read URLs from a file, drop ones you already have or don’t want, open the rest in Floorp in batches, then clear the file.
+Read URLs from a file, drop ones you already have or don't want, open the rest in Floorp in batches. A backup file is created before opening URLs, and the original file is cleared after Floorp closes.
 
 Requirements
 
@@ -30,7 +30,7 @@ Run:
 python3 open_urls_list.py
 
 
-The script opens URLs in batches, truncates urls.txt, then waits for Floorp to close.
+The script creates a backup (urls_bak.txt), opens URLs in batches, waits for Floorp to close, then clears urls.txt.
 
 Exit codes
 
